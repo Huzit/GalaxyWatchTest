@@ -1,12 +1,9 @@
 package com.samsung.android.hardware.sensormanager
 
 import android.content.Context
-import android.hardware.SensorManager
 import android.os.*
 import android.util.Log
-import java.lang.reflect.Method
 import java.util.HashMap
-import java.util.Objects
 import java.util.concurrent.CopyOnWriteArrayList
 
 
@@ -20,10 +17,23 @@ class SemSensorManager() {
         private const val TAG = "SemSensorManager"
     }
 
-    lateinit var sensorMap: HashMap<String, Int>
+    private var mPackageName: String? = null
+    private val mListenerDelegates = CopyOnWriteArrayList<ListenerDelegate>()
+    /**/
+    private val mServiceManager = Class.forName("android.os.ServiceManager")
+    private val serviceManager = mServiceManager.getMethod("getService", String.javaClass)
+    private val getService = serviceManager.invoke(null, arrayOf("sem_sensor")) as IBinder
+    /**/
+    private val mSemSensorService = ISemSensorService.Stub.asInterface(getService)
+
+    private lateinit var _samSensorMap: HashMap<String, Int>
+    val sensorMap: HashMap<String, Int>
+        get() = _samSensorMap
 
     @OptIn(ExperimentalStdlibApi::class)
     constructor(context: Context): this() {
+
+        Log.d("클래스 이름", Class.forName("android.os.ServiceManager").name)
         mPackageName = context.packageName
         Log.i(TAG, "SemSensorManager created")
         val cls2 = SemSensor.values()
@@ -35,8 +45,6 @@ class SemSensorManager() {
             }
         }
 
-        sensorMap = hashMap
-
         mPackageName += ".dont.block.me.please"
 
 //        val declaredField = javaClass.getDeclaredField("mPackageName")
@@ -44,14 +52,6 @@ class SemSensorManager() {
 //        declaredField.set(this, context.packageName + ".dont.block.me.please")
 //        declaredField.isAccessible = false
     }
-
-    private var mPackageName: String? = null
-    private val mListenerDelegates = CopyOnWriteArrayList<ListenerDelegate>()
-
-    private val serviceManager = Class.forName("android.os.ServiceManager").getMethod("getService", String.javaClass)
-    private val getService = serviceManager.invoke(null, arrayOf("sem_sensor")) as IBinder
-
-    private val mSemSensorService = ISemSensorService.Stub.asInterface(getService)
 
     /* loaded from: classes2.dex */
     inner class ListenerDelegate(val listener: SemSensorListener) : ISemSensorCallback.Stub() {
@@ -209,7 +209,9 @@ class SemSensorManager() {
         return SEM_SENSOR_MANAGER_VERSION
     }
 
-    fun getSensorMap() = sensorMap
+//    fun getSensorMap(): HashMap<String, Int> {
+//        return _sensorMap
+//    }
 
     fun getSensorVersion(i11: Int): Int {
         val iSemSensorService = mSemSensorService
@@ -285,7 +287,7 @@ class SemSensorManager() {
         return registerListener(semSensorListener, i11, null)
     }
 
-    fun registerListener(
+    private fun registerListener(
         semSensorListener: SemSensorListener,
         i11: Int,
         semSensorAttribute: SemSensorAttribute?
@@ -301,15 +303,17 @@ class SemSensorManager() {
             mListenerDelegates.add(listenerDelegate)
         }
         try {
+            //여기 안타는데???
             Log.i(TAG, "registerListener")
             i12 = mSemSensorService.registerCallback(
                 listenerDelegate, i11,
                 mPackageName, semSensorAttribute
             )
+            Log.i(TAG, "$i12")
         } catch (e11: RemoteException) {
             Log.e(TAG, "RemoteException in registerListener: ", e11)
         }
-        Log.i(TAG, "registerListener end")
+        Log.i(TAG, "registerListener : end")
         return i12
     }
 

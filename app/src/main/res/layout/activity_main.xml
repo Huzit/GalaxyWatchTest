@@ -47,6 +47,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="testValue" />
+
+            <Button
+                android:id="@+id/runTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="측정"/>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

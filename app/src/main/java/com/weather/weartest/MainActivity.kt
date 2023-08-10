@@ -16,6 +16,9 @@ import com.samsung.android.hardware.sensormanager.SemSensorManager
 import com.samsung.android.hardware.sensormanager.SemSkinTemperatureSensorEvent
 import com.samsung.android.hardware.sensormanager.SemSkinTemperatureSensorParam
 import com.weather.weartest.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.File
 
 
@@ -34,14 +37,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private var lastValue: Float = 0.0f
 
-    val sensorListener = object: SemSensorListener{
-
+    private val sensorListener = object: SemSensorListener{
         override fun onEventChanged(semSensorEvent: SemSensorEvent) {
+            Log.d("events", semSensorEvent.toString())
             val semSkinTemperatureSensorEvent = SemSensorEvent() as SemSkinTemperatureSensorEvent
             var count = semSkinTemperatureSensorEvent.getCount()!!.minus(1) ?: 0
 
             if(count >= 0 && semSkinTemperatureSensorEvent.getAccuracyList()[count] != SemSkinTemperatureSensorParam.Accuracy.ERROR){
-                val num = sensorManager.getSensorMap().get("TYPE_WEAR_SKIN_TEMPERATURE")!!
+//                val num = sensorManager.sensorMap["TYPE_WEAR_SKIN_TEMPERATURE"]!!
+                val num = 50
                 sensorManager.unregisterListener(this, num)
             }
 
@@ -84,8 +88,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+
         sensorManager = SemSensorManager(this)
-        measure()
+
+        binding.runTemp.setOnClickListener {
+            measure()
+        }
 
 //        requestPermissions(arrayOf("android.permission.BODY_SENSORS", android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 1)
 //        requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),1001)
@@ -102,15 +110,18 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     }
 
     private fun measure() {
-        window.addFlags(128)
+//        window.addFlags(128)
         if(sensorManager != null){
-            val num = sensorManager.getSensorMap().get("TYPE_WEAR_SKIN_TEMPERATURE")
+//            val num = sensorManager.sensorMap["TYPE_WEAR_SKIN_TEMPERATURE"]
+            val num = 50
 
             if(num != null){
-                if(sensorManager.registerListener(sensorListener, num.toInt()) == 0){
+                val res =sensorManager.registerListener(sensorListener, num.toInt())
+                Log.d("measure", res.toString())
+//                if(sensorManager.registerListener(sensorListener, num.toInt()) == 0){
 //                    loading()
 //                    vibrate()
-                }
+//                }
             }
         }
     }
