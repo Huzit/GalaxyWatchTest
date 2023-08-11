@@ -10,11 +10,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.google.common.io.Files.append
-import com.samsung.android.hardware.sensormanager.SemSensorEvent
-import com.samsung.android.hardware.sensormanager.SemSensorListener
-import com.samsung.android.hardware.sensormanager.SemSensorManager
-import com.samsung.android.hardware.sensormanager.SemSkinTemperatureSensorEvent
-import com.samsung.android.hardware.sensormanager.SemSkinTemperatureSensorParam
+import com.samsung.android.hardware.sensormanager.*
 import com.weather.weartest.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +18,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 
-class MainActivity : AppCompatActivity(), SensorEventListener {
+class MainActivity : AppCompatActivity() {
 
     private final val APP_TAG = "SimpleHealth"
     private lateinit var binding: ActivityMainBinding
@@ -90,6 +86,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
 
         sensorManager = SemSensorManager(this)
+        sensorManager.test("Tlqkf")
 
         binding.runTemp.setOnClickListener {
             measure()
@@ -116,7 +113,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             val num = 50
 
             if(num != null){
-                val res =sensorManager.registerListener(sensorListener, num.toInt())
+                val res =sensorManager.registerListener(sensorListener, num.toInt()) //fixme <- -1이 반환왜
                 Log.d("measure", res.toString())
 //                if(sensorManager.registerListener(sensorListener, num.toInt()) == 0){
 //                    loading()
@@ -156,30 +153,30 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     fun getGps() = packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
 
     //센서 이벤트
-    override fun onSensorChanged(event: SensorEvent?) {
-
-        when(event!!.sensor.type){
-            hrCode -> {
-                val heartRate = event.values?.get(0) ?: 0
-                Log.d("센서 값 : ", "${heartRate}")
-                binding.hrTv.text = "심박수 : $heartRate "
-            }
-            34 -> {
-                val t = event.values?.get(0) ?: 0
-                Log.d("착용 감지 센서 : ", "$t")
-                binding.offBodyTv.text = "착용 감지 센서\n(0: 미착용, 1: 착용) :$t"
-            }
-            sensorCode -> {
-                val t = event.values[0] ?: 0
-
-                binding.test.text = "보로미터 값 : \n${event.sensor.name}\n$t"
-            }
-        }
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        Log.d("AccuracyChangedEvent", sensor!!.name)
-    }
+//    override fun onSensorChanged(event: SensorEvent?) {
+//
+//        when(event!!.sensor.type){
+//            hrCode -> {
+//                val heartRate = event.values?.get(0) ?: 0
+//                Log.d("센서 값 : ", "${heartRate}")
+//                binding.hrTv.text = "심박수 : $heartRate "
+//            }
+//            34 -> {
+//                val t = event.values?.get(0) ?: 0
+//                Log.d("착용 감지 센서 : ", "$t")
+//                binding.offBodyTv.text = "착용 감지 센서\n(0: 미착용, 1: 착용) :$t"
+//            }
+//            sensorCode -> {
+//                val t = event.values[0] ?: 0
+//
+//                binding.test.text = "보로미터 값 : \n${event.sensor.name}\n$t"
+//            }
+//        }
+//    }
+//
+//    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+//        Log.d("AccuracyChangedEvent", sensor!!.name)
+//    }
 
     override fun onResume() {
         super.onResume()

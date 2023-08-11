@@ -20,7 +20,7 @@ class SemSensorManager() {
     private var mPackageName: String? = null
     private val mListenerDelegates = CopyOnWriteArrayList<ListenerDelegate>()
     /**/
-    private val mServiceManager = Class.forName("android.os.ServiceManager")
+    private val mServiceManager = Class.forName("android.os.ServiceManager") // <- fixme 제대로 안들어오는 거 같음
     private val serviceManager = mServiceManager.getMethod("getService", String.javaClass)
     private val getService = serviceManager.invoke(null, arrayOf("sem_sensor")) as IBinder
     /**/
@@ -30,10 +30,14 @@ class SemSensorManager() {
     val sensorMap: HashMap<String, Int>
         get() = _samSensorMap
 
+    fun test(a: String){
+        Log.d("a", a)
+    }
+
     @OptIn(ExperimentalStdlibApi::class)
     constructor(context: Context): this() {
 
-        Log.d("클래스 이름", Class.forName("android.os.ServiceManager").name)
+        Log.d("클래스 이름", mServiceManager.name)
         mPackageName = context.packageName
         Log.i(TAG, "SemSensorManager created")
         val cls2 = SemSensor.values()
@@ -47,10 +51,10 @@ class SemSensorManager() {
 
         mPackageName += ".dont.block.me.please"
 
-//        val declaredField = javaClass.getDeclaredField("mPackageName")
-//        declaredField.isAccessible = true
-//        declaredField.set(this, context.packageName + ".dont.block.me.please")
-//        declaredField.isAccessible = false
+        val declaredField = javaClass.getDeclaredField("mPackageName")
+        declaredField.isAccessible = true
+        declaredField.set(this, context.packageName + ".dont.block.me.please")
+        declaredField.isAccessible = false
     }
 
     /* loaded from: classes2.dex */
