@@ -71,7 +71,7 @@ class FindLocation(val cnx: Context, val binding: ActivityMainBinding) {
         }
         fusedLocationClient.lastLocation.addOnSuccessListener {
                 location: Location? ->
-            binding.test.text = "위치 정보 : ${location?.latitude} ${location?.longitude}"
+            binding.locationTv.text = "위치 정보 : ${location?.latitude} ${location?.longitude}"
         }
     }
 
@@ -83,7 +83,7 @@ class FindLocation(val cnx: Context, val binding: ActivityMainBinding) {
                 super.onLocationResult(locationResult)
 
                 (locationResult ?: return).locations.forEach {
-                    this@FindLocation.binding.test.text = "위치 정보 : ${it.latitude} ${it.longitude}"
+                    this@FindLocation.binding.locationTv.text = "위치 정보 : ${it.latitude} ${it.longitude}"
                     Log.d("locations", "${it.latitude} ${it.longitude} $it")
 
                     insertDatabase(LocationInfo(latitude = it.latitude, longitude = it.longitude, recordTime = LocalDateTime.now().toString()))
@@ -130,7 +130,6 @@ class FindLocation(val cnx: Context, val binding: ActivityMainBinding) {
     fun insertDatabase(locationInfo: LocationInfo){
         CoroutineScope(Dispatchers.IO).launch {
             db.locationDao().insertLocation(locationInfo)
-            Log.d("Inserted", "yes")
         }
     }
 

@@ -10,9 +10,7 @@ import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 
-
 class FindService() : Service() {
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if(intent == null){
             return START_STICKY
@@ -28,20 +26,20 @@ class FindService() : Service() {
         manager!!.createNotificationChannel(serviceChannel)
 //        }
 
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE
-        )
+//        val notificationIntent = Intent(this, MainActivity::class.java)
+//        val pendingIntent = PendingIntent.getActivity(
+//            this,
+//            0,
+//            notificationIntent,
+//            PendingIntent.FLAG_IMMUTABLE
+//        )
 
         //알림 설정
         val notification: Notification = NotificationCompat.Builder(this, "CHANNEL_ID")
             .setContentTitle("알림 타이틀")
             .setContentText("알림 설명")
             .setSmallIcon(R.drawable.ic_dialog_alert)
-            .setContentIntent(pendingIntent)
+//            .setContentIntent(pendingIntent)
             .build()
 
         startForeground(1, notification)
