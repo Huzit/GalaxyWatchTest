@@ -9,12 +9,9 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.room.Room
-import com.weather.weartest.database.AppDatabase
-import com.weather.weartest.database.LocationInfo
 import com.weather.weartest.databinding.ActivityMainBinding
 import com.weather.weartest.retrofit.EndPoint
 import com.weather.weartest.retrofit.RetrofitIntance
@@ -53,16 +50,17 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION), 1001)
         /**/
-//        locationPermissionRequest.launch(arrayOf(
-//
-//            )
-//        )
-        requestPermissions(arrayOf("android.permission.BODY_SENSORS", android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 1)
+        locationPermissionRequest.launch(arrayOf(
 
+            )
+        )
+        requestPermissions(arrayOf("android.permission.BODY_SENSORS", android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 1)
         findLocation = FindLocation(this, binding)
         findLocation.initDatabase()
         initSensor()
+        
 
         //위치 권한
 
@@ -76,7 +74,36 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         //위치 업데이트 요청
         startForegroundService(Intent(this, FindService::class.java))
     }
-
+    
+    override fun onBackPressed() {
+    
+    }
+    
+    var lastPress = 0L
+    var pressCount = 0
+    val doubleClickInterval = 400L
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        
+        if(keyCode == 4){
+            if(pressCount > 0 && (System.currentTimeMillis() - lastPress) < doubleClickInterval)
+                pressCount += 1
+            else
+                pressCount = 1
+            Log.d("키 테스트 이벤트", "pressCount : $pressCount")
+            lastPress = System.currentTimeMillis()
+            
+            when(pressCount){
+                2 -> {
+                    Log.d("PressCount", "2회 클릭했음")
+                }
+                3 -> {
+                    Log.d("PressCount", "3회 클릭했음")
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+    
     //센서 정의
     fun initSensor(){
         sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
