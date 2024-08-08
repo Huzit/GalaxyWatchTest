@@ -29,21 +29,36 @@
                 android:id="@+id/hrTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/hello_world" />
+                android:text="SKINTEMP" />
 
             <TextView
-                android:id="@+id/offBodyTv"
+                android:id="@+id/skinTemp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="testValue" />
 
             <TextView
-                android:id="@+id/locationTv"
+                android:id="@+id/ambientSkinTemp"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:text="ambientSkinTemp"
+                />
 
             <TextView
-                android:id="@+id/test"
+                android:id="@+id/skinTemp2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="testValue" />
+
+            <TextView
+                android:id="@+id/pressCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="press count"
+                />
+
+            <TextView
+                android:id="@+id/p3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="testValue" />

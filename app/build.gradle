@@ -19,7 +19,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -66,6 +66,10 @@ dependencies {
     implementation fileTree(includes: ['*.jar', '*.aar'], dir: 'libs')
     implementation("com.google.android.material:material:1.9.0")
     implementation 'androidx.appcompat:appcompat:1.6.1'
+
+    implementation files('libs/priv-health-tracking-v1.2.0.aar')
+    //multi function button
+    implementation "androidx.wear:wear-input:1.0.0"
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {

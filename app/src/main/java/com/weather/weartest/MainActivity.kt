@@ -6,25 +6,45 @@ import android.hardware.SensorDirectChannel
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.media.MediaDrm
+import android.media.UnsupportedSchemeException
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
+import android.view.GestureDetector.SimpleOnGestureListener
+import android.view.KeyEvent
+import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import com.google.common.io.Files.append
-import com.samsung.android.hardware.sensormanager.*
+import androidx.wear.input.WearableButtons
+import com.google.android.gms.wearable.WearableListenerService
+import com.samsung.android.service.health.tracking.ConnectionListener
+import com.samsung.android.service.health.tracking.HealthTracker
+import com.samsung.android.service.health.tracking.HealthTrackerException
+import com.samsung.android.service.health.tracking.HealthTrackingService
+import com.samsung.android.service.health.tracking.data.DataPoint
+import com.samsung.android.service.health.tracking.data.HealthTrackerType
+import com.samsung.android.service.health.tracking.data.ValueKey
 import com.weather.weartest.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import java.io.File
+import kotlinx.coroutines.runBlocking
+import java.text.DecimalFormat
+import java.util.Base64
+import java.util.UUID
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SensorEventListener {
 
     private final val APP_TAG = "SimpleHealth"
     private lateinit var binding: ActivityMainBinding
-//    private lateinit var ambientController: AmbientModeSupport.AmbientController
-    private lateinit var sensorManager : SemSensorManager
+    lateinit var sensorManager: SensorManager
     lateinit var heartRateSensor: Sensor //심박 센서
+    lateinit var skinTempSensor: HealthTracker
     lateinit var offBodySensor: Sensor   //착용감지센서
     lateinit var test: Sensor
     val hrCode = Sensor.TYPE_HEART_RATE
@@ -33,65 +53,15 @@ class MainActivity : AppCompatActivity() {
 
     private var lastValue: Float = 0.0f
 
-    private val sensorListener = object: SemSensorListener{
-        override fun onEventChanged(semSensorEvent: SemSensorEvent) {
-            Log.d("events", semSensorEvent.toString())
-            val semSkinTemperatureSensorEvent = SemSensorEvent() as SemSkinTemperatureSensorEvent
-            var count = semSkinTemperatureSensorEvent.getCount()!!.minus(1) ?: 0
-
-            if(count >= 0 && semSkinTemperatureSensorEvent.getAccuracyList()[count] != SemSkinTemperatureSensorParam.Accuracy.ERROR){
-//                val num = sensorManager.sensorMap["TYPE_WEAR_SKIN_TEMPERATURE"]!!
-                val num = 50
-                sensorManager.unregisterListener(this, num)
-            }
-
-            lastValue = semSkinTemperatureSensorEvent.getObjectTemperatureList()!![count]
-
-            Log.d("디폴트 값", lastValue.toString())
-
-            window.clearFlags(128)
-            val file = File(cacheDir, "sensor_log")
-            val sb = StringBuilder("sv=")
-            sb.append(
-                if(sensorManager != null)
-                    sensorManager.getServiceVersion()
-                else
-                    null
-            ).append("&v=")
-            .append(
-            if(sensorManager != null)
-                sensorManager.getVersion()
-            else
-                null
-            ).append("&a=").append(
-                semSkinTemperatureSensorEvent.getAccuracyList()[count]
-            ).append("&at=").append(
-                semSkinTemperatureSensorEvent.getAmbientTemperatureList()!![count]
-            ).append("&ot=").append(
-                semSkinTemperatureSensorEvent.getObjectTemperatureList()!![count]
-            ).append('\n')
-
-
-        }
-
-        override fun onStatusChanged(i: Int, str: String) {
-            Log.d("asdf", "i: $i , str: $str")
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-
-        sensorManager = SemSensorManager(this)
-        sensorManager.test("Tlqkf")
-
-        binding.runTemp.setOnClickListener {
-            measure()
-        }
-
+        val ssaid = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
+        Log.d("ssaid", ssaid)
+        binding.hrTv.text = ssaid
+//        initTracker()
 //        requestPermissions(arrayOf("android.permission.BODY_SENSORS", android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION), 1)
 //        requestPermissions(arrayOf(Manifest.permission.ACCESS_BACKGROUND_LOCATION),1001)
 //        findLocation = FindLocation(this, binding)
@@ -104,68 +74,73 @@ class MainActivity : AppCompatActivity() {
 //        findLocation.createLocationRequest()
         //마지막 위치 찾기
 //        findLocation.findLastLocation()
+
     }
 
-    private fun measure() {
-//        window.addFlags(128)
-        if(sensorManager != null){
-//            val num = sensorManager.sensorMap["TYPE_WEAR_SKIN_TEMPERATURE"]
-            val num = 50
-
-            if(num != null){
-                val res =sensorManager.registerListener(sensorListener, num.toInt()) //fixme <- -1이 반환왜
-                Log.d("measure", res.toString())
-//                if(sensorManager.registerListener(sensorListener, num.toInt()) == 0){
-//                    loading()
-//                    vibrate()
-//                }
-            }
-        }
-    }
-
-
-    private fun calibrateCel(cel: Float): Float{
-        return lastValue
-    }
-    
     override fun onBackPressed() {
-    
+
     }
-    
-    var lastPress = 0L
-    var pressCount = 0
-    val doubleClickInterval = 400L
+
+    private var pressCount = 0
+    private var lastPress = 0L
+    private var pressInterval = 400L
+    private fun pressPPP(pressEvnet: () -> Unit) = CoroutineScope(Dispatchers.Main).launch {
+        delay(pressInterval)
+        pressEvnet()
+    }
+
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        
-        if(keyCode == 4){
-            if(pressCount > 0 && (System.currentTimeMillis() - lastPress) < doubleClickInterval)
-                pressCount += 1
-            else
-                pressCount = 1
-            Log.d("키 테스트 이벤트", "pressCount : $pressCount")
-            lastPress = System.currentTimeMillis()
-            
-            when(pressCount){
-                2 -> {
-                    Log.d("PressCount", "2회 클릭했음")
+        Log.d("pressed", event.toString())
+
+        if(keyCode != KeyEvent.KEYCODE_BACK)
+            return false
+
+        if(pressCount > 0 && (System.currentTimeMillis() - lastPress) < 400){
+            pressCount += 1
+        } else{
+            pressCount = 1
+        }
+        lastPress = System.currentTimeMillis()
+        binding.p3.text = pressCount.toString()
+
+        when(pressCount){
+            2 -> {
+                pressPPP {
+                    if(pressCount == 2)
+                        Toast.makeText(applicationContext, "${pressCount}회 눌렀음", Toast.LENGTH_SHORT).show()
                 }
-                3 -> {
-                    Log.d("PressCount", "3회 클릭했음")
+        }
+            3 -> {
+                pressPPP {
+                    if(pressCount == 3)
+                        Toast.makeText(applicationContext, "${pressCount}회 눌렀음", Toast.LENGTH_SHORT).show()
                 }
             }
         }
+
         return super.onKeyDown(keyCode, event)
     }
-    
+
+
+    override fun onKeyLongPress(keyCode: Int, event: KeyEvent?): Boolean {
+        if(keyCode == KeyEvent.KEYCODE_BACK){
+            Log.d("롱 프레스", "롱 프레스")
+        }
+        return super.onKeyLongPress(keyCode, event)
+    }
+
+
+
     //센서 정의
-//    fun initSensor(){
-//        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
-//
-//        heartRateSensor = sensorManager.getDefaultSensor(hrCode, true)
-//
-//        offBodySensor = sensorManager.getDefaultSensor(34)
-//        test = sensorManager.getDefaultSensor(sensorCode)
-//    }
+    fun initSensor(){
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+
+        heartRateSensor = sensorManager.getDefaultSensor(hrCode, true)
+
+        offBodySensor = sensorManager.getDefaultSensor(34)
+        test = sensorManager.getDefaultSensor(sensorCode)
+    }
 
     fun getSensorList(){
         val mSensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
@@ -182,42 +157,109 @@ class MainActivity : AppCompatActivity() {
     fun getGps() = packageManager.hasSystemFeature(PackageManager.FEATURE_LOCATION_GPS)
 
     //센서 이벤트
-//    override fun onSensorChanged(event: SensorEvent?) {
-//
-//        when(event!!.sensor.type){
-//            hrCode -> {
-//                val heartRate = event.values?.get(0) ?: 0
-//                Log.d("센서 값 : ", "${heartRate}")
-//                binding.hrTv.text = "심박수 : $heartRate "
-//            }
-//            34 -> {
-//                val t = event.values?.get(0) ?: 0
-//                Log.d("착용 감지 센서 : ", "$t")
-//                binding.offBodyTv.text = "착용 감지 센서\n(0: 미착용, 1: 착용) :$t"
-//            }
-//            sensorCode -> {
-//                val t = event.values[0] ?: 0
-//
-//                binding.test.text = "보로미터 값 : \n${event.sensor.name}\n$t"
-//            }
-//        }
-//    }
-//
-//    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-//        Log.d("AccuracyChangedEvent", sensor!!.name)
-//    }
+    override fun onSensorChanged(event: SensorEvent?) {
+
+        when(event!!.sensor.type){
+            hrCode -> {
+                val heartRate = event.values?.get(0) ?: 0
+                Log.d("센서 값 : ", "${heartRate}")
+                binding.hrTv.text = "심박수 : $heartRate "
+            }
+            34 -> {
+                val t = event.values?.get(0) ?: 0
+                Log.d("착용 감지 센서 : ", "$t")
+            }
+            sensorCode -> {
+                val t = event.values[0] ?: 0
+            }
+        }
+    }
+
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        Log.d("AccuracyChangedEvent", sensor!!.name)
+    }
 
     override fun onResume() {
         super.onResume()
 //        sensorManager.registerListener(this, heartRateSensor, SensorManager.SENSOR_DELAY_NORMAL)
 //        sensorManager.registerListener(this, offBodySensor, SensorManager.SENSOR_DELAY_NORMAL)
 //        sensorManager.registerListener(this, test, SensorManager.SENSOR_DELAY_UI)
-
+//
 //        findLocation.startLocationUpdates()
     }
-    override fun onDestroy() {
-        super.onDestroy()
-//        findLocation.stopLocationUpdates()
-//        findLocation.getLocationDatabase()
+
+    lateinit var mHealthTrackingService: HealthTrackingService
+
+    fun initTracker(){
+        mHealthTrackingService = HealthTrackingService(samsungConnectionListener, applicationContext)
+        mHealthTrackingService.connectService()
     }
+
+    private val samsungConnectionListener = object : ConnectionListener {
+        @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+        override fun onConnectionSuccess() {
+            val trackerList = listOf(
+                HealthTrackerType.ACCELEROMETER,
+                HealthTrackerType.HEART_RATE,
+//                HealthTrackerType.SPO2,
+                HealthTrackerType.SKIN_TEMPERATURE
+            )
+            skinTempSensor = mHealthTrackingService.getHealthTracker(HealthTrackerType.SKIN_TEMPERATURE)
+            skinTempSensor.setEventListener(sensorEventListener("SKIN_TEMP"))
+        }
+
+        override fun onConnectionEnded() {
+            Log.d("onConnectionEnded", "Connection is Ended")
+        }
+
+        override fun onConnectionFailed(e: HealthTrackerException?) {
+            if (e != null) {
+                if (e.errorCode == HealthTrackerException.OLD_PLATFORM_VERSION || e.errorCode == HealthTrackerException.PACKAGE_NOT_INSTALLED) {
+                    Toast.makeText(
+                        applicationContext,
+                        "Health Platform version is outdated or not installed",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    Log.e(
+                        "onConnectionFailed",
+                        "Health Platform version is outdated or not installed"
+                    )
+                }
+
+                if (e.hasResolution()) {
+                }
+            }
+        }
+    }
+
+    private fun sensorEventListener(sensorName: String): HealthTracker.TrackerEventListener =
+        object : HealthTracker.TrackerEventListener {
+            override fun onDataReceived(dataPoints: MutableList<DataPoint>) {
+                when (sensorName) {
+                    "SKIN_TEMP" -> {
+                        //AMBIENT_TEMPERATURE(주변온도) OBJECT_TEMPERATURE(물체온도?)
+                        Log.d("SKIN TEMP", dataPoints[0].getValue(ValueKey.SkinTemperatureSet.OBJECT_TEMPERATURE).toString())
+                        val skinTemp = dataPoints[0].getValue(ValueKey.SkinTemperatureSet.OBJECT_TEMPERATURE)
+                        val ambientTemp = dataPoints[0].getValue(ValueKey.SkinTemperatureSet.AMBIENT_TEMPERATURE)
+                        runOnUiThread {
+                            binding.skinTemp.text = skinTemp.toString()
+                            binding.skinTemp2.text = ambientTemp.toString()
+                        }
+                    }
+                }
+            }
+
+            override fun onFlushCompleted() {
+            }
+
+            //TODO need Test
+            override fun onError(e: HealthTracker.TrackerError?) {
+                if (e == HealthTracker.TrackerError.PERMISSION_ERROR)
+                    Log.e("PermissionError", "Permission Checked Failed")
+                else if (e == HealthTracker.TrackerError.SDK_POLICY_ERROR)
+                    Log.e("SDKPolicyError", "SDK Policy denied")
+                else
+                    Log.w("Error 발생", "onError called")
+            }
+        }
 }
