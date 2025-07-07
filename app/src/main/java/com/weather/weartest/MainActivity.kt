@@ -77,10 +77,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
     }
 
-    override fun onBackPressed() {
-
-    }
-
     private var pressCount = 0
     private var lastPress = 0L
     private var pressInterval = 400L

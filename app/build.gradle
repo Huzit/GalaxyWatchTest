@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace 'com.weather.weartest'
-    compileSdk 33
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.weather.weartest"
