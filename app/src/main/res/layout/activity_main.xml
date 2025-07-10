@@ -29,13 +29,13 @@
                 android:id="@+id/hrTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="SKINTEMP" />
+                android:text="heart" />
 
             <TextView
                 android:id="@+id/skinTemp"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="testValue" />
+                android:text="skinTemp" />
 
             <TextView
                 android:id="@+id/ambientSkinTemp"
@@ -45,29 +45,22 @@
                 />
 
             <TextView
-                android:id="@+id/skinTemp2"
+                android:id="@+id/remainTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="testValue" />
-
-            <TextView
-                android:id="@+id/pressCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="press count"
+                android:text="남은 시간"
                 />
 
             <TextView
-                android:id="@+id/p3"
+                android:id="@+id/ecgValue"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="testValue" />
-
+                android:text="ecg value" />
             <Button
-                android:id="@+id/runTemp"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="측정"/>
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="측정시작"
+                />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>
